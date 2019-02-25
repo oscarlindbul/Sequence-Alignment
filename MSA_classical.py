@@ -154,11 +154,8 @@ def solve_MSA(sequences, costs):
             score_recur(pos, dim+1)
 
     # set score matrix
-    print("Calculating score matrix")
     pos = np.zeros(len(scores.shape), dtype=np.int32)
     score_recur(pos, 0)
-    if len(sequences) <= 2:
-        print(scores)
 
     def trace_recur(pos, align_node):
         if np.all(pos == 0):
@@ -202,6 +199,8 @@ def solve_MSA(sequences, costs):
     # traceback
     print("Beginning traceback")
     roots = find_trace()
+
+    ## print found path
     print(sum([r.sol_num() for r in roots]), "solutions found")
     for i in range(len(roots)):
         alignments = roots[i].get_aligns()
@@ -216,8 +215,3 @@ def solve_MSA(sequences, costs):
                 align_strings[j][k] = "".join(align_strings[j][k])
                 print(align_strings[j][k])
             print()
-
-
-seqs = ["ACT", "CTG"]
-costs = [0, -1, -1]
-solve_MSA(seqs, costs)
