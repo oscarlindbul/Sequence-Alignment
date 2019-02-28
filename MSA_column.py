@@ -172,5 +172,5 @@ def get_MSA_qubitops(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
     #             # if not (s,n,i) in exceptions:
     #             add_pauli_bool(1000, (s,n,i))
     #             print("not", (s,n,i))
-
+    print("Number of paulis:", len(pauli_list))
     return Operator(paulis=pauli_list), shift, rev_ind_scheme
