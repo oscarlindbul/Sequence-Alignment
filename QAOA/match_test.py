@@ -4,8 +4,9 @@ from qiskit_aqua.algorithms import ExactEigensolver
 import numpy as np
 from timeit import default_timer as timer
 
-sequences = ["CTC", "TA", "AT"]
-costs = [1, -2, -1]
+sequences = ["CT", "T"]
+#sequences = ["CTC", "TA", "AT"]
+costs = [1, -1, -1]
 
 # classical version
 MSA_classical.solve_MSA(sequences, costs)
@@ -21,9 +22,10 @@ for s1 in range(len(sequences)):
                 if sequences[s1][n1] == sequences[s2][n2]:
                     matchings[s1,n1,s2,n2] = -1
                 else:
-                    matchings[s1,n1,s2,n2] = 2
+                    matchings[s1,n1,s2,n2] = 1
+print(matchings)
 
-inserts = 1
+inserts = 0
 Hamilt, shift, rev_inds = MSA_column.get_MSA_qubitops(sizes, matchings, gap_pen=2, extra_inserts=inserts)
 print("Written", Hamilt)
 start = timer()
@@ -32,21 +34,23 @@ end = timer()
 print("Took ", end - start, "seconds")
 print("Optimized")
 ind = len(Hamilt.matrix) - np.argmin(Hamilt.matrix) - 1
-# ee = ExactEigensolver(Hamilt)
-# result = ee.run()
-print("Solved")
-# state = result['wavefunction'][0]
-# ind = 0
-# for i in range(len(state)):
-#     if state[len(state) - i - 1] != 0:
-#         ind = i
-#         break
+ee = ExactEigensolver(Hamilt)
+result = ee.run()
+state = result['wavefunction'][0]
+print("Solved", state)
+ind = 0
+for i in range(len(state)):
+    if state[len(state) - i - 1] != 0:
+        ind = i
+        break
 # print(Hamilt)
 qubits = Hamilt.num_qubits
 bin_string = format(ind, "0" + str(qubits) + "b")[::-1]
 print(bin_string)
 bin_arr = [s == '1' for s in bin_string]
+print(bin_arr)
 included = rev_inds[bin_arr]
+print(included)
 align_string = np.chararray((len(sequences), max(sizes)+inserts), unicode=True)
 align_string[:] = '-'
 for (s,n,i) in included:

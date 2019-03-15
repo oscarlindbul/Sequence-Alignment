@@ -3,6 +3,8 @@ import numpy as np
 from qiskit.quantum_info import Pauli
 from qiskit_aqua import Operator
 
+from collections import OrderedDict
+
 def get_MSA_qubitops(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=False, coeffs=[1, 1000]):
     """Generate Hamiltonian for Multiple Sequence Alignment (MSA) column formulation
 
@@ -174,3 +176,58 @@ def get_MSA_qubitops(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
     #             print("not", (s,n,i))
     print("Number of paulis:", len(pauli_list))
     return Operator(paulis=pauli_list), shift, rev_ind_scheme
+
+def sample_most_likely(state_vector, rev_inds):
+    """Compute the most likely DNA matching"""
+
+    if isinstance(state_vector, dict) or isinstance(state_vector, OrderedDict):
+        binary_string = sorted(state_vector.items(), key=lambda kv: kv[1])[-1][0]
+        x = np.asarray([int(y)==1 for y in reversed(list(binary_string))])
+    else:
+        n = int(np.log2(state_vector.shape[0]))
+        k = np.argmax(np.flip(np.abs(state_vector)))
+        x = np.zeros(n, dtype=np.bool)
+        for i in range(n):
+            x[i] = (k % 2) == 1
+            k >>= 1
+
+    # parse output binary string
+    positions = {}
+    included_comps = rev_inds[x]
+    for (s, n, i) in included_comps:
+        positions[(s, n)] = i
+    return positions
+
+def get_alignment_string(sequences, gaps, positions):
+    string_size = max([len(s) for s in sequences]) + gaps
+    align_strings = [["-" for i in range(string_size)] for i in range(len(sequences))]
+    for (key, value) in positions.items():
+        align_strings[key[0]][value] = sequences[key[0]][key[1]]
+    return align_strings
+
+def get_match_matrix(sequences, costs):
+    """Constructs the matching matrix for later construction of Hamiltonian
+
+    Constructs matching matrix for each (sequence, element) pair with given match reward and penalty
+
+    Input:
+        sequences - list of sequence strings : string list
+        costs     - reward and penalty for element match/mismatch [reward, penalty] : float list
+    Output:
+        matchings - list on the format (s1, n1, s2, n2) of match scores : numpy array
+    """
+    reward = costs[0]
+    penalty = costs[1]
+
+    sizes = [len(sequences[i]) for i in range(len(sequences))]
+    # calculate weights for matching
+    matchings = np.zeros((len(sequences), max(sizes), len(sequences), max(sizes)))
+    for s1 in range(len(sequences)):
+        for s2 in range(len(sequences)):
+            for n1 in range(sizes[s1]):
+                for n2 in range(sizes[s2]):
+                    if sequences[s1][n1] == sequences[s2][n2]:
+                        matchings[s1,n1,s2,n2] = reward
+                    else:
+                        matchings[s1,n1,s2,n2] = penalty
+    return matchings
