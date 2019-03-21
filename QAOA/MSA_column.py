@@ -50,6 +50,7 @@ def get_MSA_qubitops(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
         """
         return int((np.sum(sizes)*L)*allow_delete \
                 + (np.sum(sizes[:s]) + n)*num_pos + i)
+    
     rev_ind_scheme = np.empty(num_spins, dtype=tuple)
     for s in range(L):
         for n in range(sizes[s]):
@@ -92,6 +93,7 @@ def get_MSA_qubitops(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
                         # matching cost
                         w = weights[s1,n1,s2,n2]
                         add_pauli_bool(A*w, (s1,n1,i), (s2,n2,i))
+
     """Penalties version 1 (penalty for number of gaps/deletions)
     Deletion for element
     H_del = A*sum_{s,n} x_{s,n,0}
@@ -114,7 +116,7 @@ def get_MSA_qubitops(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
 
     """Penalties version 2 (pair of sum penalties)
     Pairing with gaps
-    H_gap = A*sum_{s1,n1}sum_{s2}sum_i g*x_{s1,n1,i}(sum_n2 x_{s2,n2,i} - 1)
+    H_gap = A*sum_{s1,n1}sum_{s2}sum_i g*x_{s1,n1,i}(1 - sum_n2 x_{s2,n2,i})
     Represents pairing of (s1,n1) at i to nothing in s2
     """
     if gap_pen != 0:
@@ -122,11 +124,11 @@ def get_MSA_qubitops(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
             for n1 in range(sizes[s1]):
                 for s2 in range(s1+1, L):
                     for i in range(num_pos):
-                        w = -A*gap_pen
+                        w = A*gap_pen
 
                         add_pauli_bool(w, (s1, n1, i))
                         for n2 in range(sizes[s2]):
-                            add_pauli_bool(w, (s1, n1, i), (s2, n2, i))
+                            add_pauli_bool(-w, (s1, n1, i), (s2, n2, i))
 
     """Placement terms
     H_placement = B*sum_{s,n} (1-sum_i x_{s,n,i})^2
@@ -224,10 +226,11 @@ def get_match_matrix(sequences, costs):
     matchings = np.zeros((len(sequences), max(sizes), len(sequences), max(sizes)))
     for s1 in range(len(sequences)):
         for s2 in range(len(sequences)):
-            for n1 in range(sizes[s1]):
-                for n2 in range(sizes[s2]):
-                    if sequences[s1][n1] == sequences[s2][n2]:
-                        matchings[s1,n1,s2,n2] = reward
-                    else:
-                        matchings[s1,n1,s2,n2] = penalty
+            if s1 != s2:
+                for n1 in range(sizes[s1]):
+                    for n2 in range(sizes[s2]):
+                        if sequences[s1][n1] == sequences[s2][n2]:
+                            matchings[s1,n1,s2,n2] = reward
+                        else:
+                            matchings[s1,n1,s2,n2] = penalty
     return matchings

@@ -155,12 +155,14 @@ class QuAM:
         M = self.get_iter_num(iteration)
 
         state = self.memory.copy()
+        state_hist = np.empty(M, dtype=qu.Qobj())
         for i in range(M):
             state = self.oracle*state
             # print("oracled by", self.oracle, state)
             state = self.diffusion*state
+            state_hist[i] = state
             # print("diffused", state)
-        return state
+        return state, state_hist
 
     def match_C1(self, iteration="approx"):
         if type(iteration) is int:
