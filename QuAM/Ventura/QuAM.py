@@ -72,7 +72,7 @@ class QuAM:
         self.memories = None
         self.state = None
 
-    def set_query(self, patterns, weights=None, scheme=None):
+    def set_query(self, patterns, weights=None, scheme=None, bin_param=0.25):
         """Sets the pattern of the search
 
         Unless weights or different scheme is given, uses a Hamming distance binomial distribution for the distributed pattern query
@@ -81,10 +81,9 @@ class QuAM:
         weights - (relative) probability weights for the patterns in the query : numpy array of floats
         scheme - Function for making query distribution : function handle with 1 argument, the pattern
         """
-
-        if not weights:
-            if not scheme:
-                scheme = lambda pattern: hamm_bin(pattern, 0.25)
+        if weights is None:
+            if scheme is None:
+                scheme = lambda pattern: hamm_bin(pattern, bin_param)
             state = qu.Qobj()
             for pattern in patterns:
                 state += scheme(str_to_bit_arr(pattern))
@@ -92,8 +91,8 @@ class QuAM:
             state = qu.Qobj()
             max_ID = 2**len(patterns[0])
             for (pattern, weight) in zip(patterns, weights):
-                state_id = bit_arr_to_int(pattern)
-                state += weight*qu.basis(state_id, max_ID)
+                state_id = bit_arr_to_int(str_to_bit_arr(pattern))
+                state += weight*qu.basis(max_ID, state_id)
         state = state.unit()
         self.query = state
         self.patterns = patterns
@@ -208,9 +207,11 @@ class QuAM:
         pass
 
     def set_oracle(self, oracle=None):
-        if not oracle:
-            N = self.query.shape[0]
+        N = self.query.shape[0]
+        if oracle is None:
             self.oracle = qu.identity(N) - 2*qu.ket2dm(self.query)
+        elif isinstance(oracle, qu.Qobj) and oracle.type == "ket":
+            self.oracle = qu.identity(N) - 2*qu.ket2dm(oracle)
         else:
             self.oracle = oracle
 
