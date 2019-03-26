@@ -86,6 +86,42 @@ class Test_QuAM(test.TestCase):
         dist = np.reshape(quam.query.full(), (2**n))
         self.iterate_equals(dist, new_amps)
 
+    def test_memory_construction(self):
+        mems = ["111", "011", "100"]
+
+        quam = QuAM()
+        exclusive_key = np.array([1, 1, 1, 0, 0, 1, 1, 0])
+        exclusive_key = exclusive_key / np.linalg.norm(exclusive_key)
+        quam.set_mem(mems)
+        mem1 = quam.memory.full()
+        mem1 = np.reshape(mem1, (mem1.shape[0]))
+        inclusive_key = np.array([0, 0, 0, 1, 1, 0, 0, 1])
+        inclusive_key = inclusive_key / np.linalg.norm(inclusive_key)
+        quam.set_mem(mems, scheme="inclusion")
+        mem2 = quam.memory.full()
+        mem2 = np.reshape(mem2, (mem2.shape[0]))
+        def even_scheme(pattern, state):
+            N = 2**len(pattern)
+            num = 0
+            mult = 1
+            for i in range(len(pattern)-1, -1, -1):
+                num += mult*pattern[i]
+                mult *= 2
+            even_state = state
+            if state is None:
+                state = qu.Qobj()
+            if num % 2 == 0:
+                state += qu.basis(N, num)
+            return state
+        custom_key = np.array([0, 0, 0, 0, 1, 0, 0, 0])
+        quam.set_mem(mems, scheme=even_scheme)
+        mem3 = quam.memory.full()
+        mem3 = np.reshape(mem3, (mem3.shape[0]))
+
+        self.iterate_equals(mem1, exclusive_key)
+        self.iterate_equals(mem2, inclusive_key)
+        self.iterate_equals(mem3, custom_key)
+
     def test_oracle_construction(self):
         center = "011"
         n = len(center)
@@ -112,18 +148,113 @@ class Test_QuAM(test.TestCase):
         self.iterate_equals(oracle, key)
 
     def test_diffusion_construction(self):
-        pass
+        mems = ["111", "011", "100"]
+        N = 2**len(mems[0])
 
-    def test_memory_construction(self):
-        pass
+        mem_state = np.array([1, 1, 1, 0, 0, 1, 1, 0])
+        mem_state = np.reshape(mem_state, (N, 1))
+        mem_state = mem_state / np.linalg.norm(mem_state)
+        quam = QuAM()
+        quam.set_mem(mems)
+        key = 2*np.outer(mem_state, mem_state) - np.eye(len(mem_state))
+        quam.set_diffusion()
+        diff_op = np.real(quam.diffusion.full())
+
+        self.iterate_equals(key, diff_op)
+
+        triv_op = np.diag([0, 1, 1, 0, 1, 1, 1])
+        q_op = qu.Qobj(triv_op)
+        quam.set_diffusion(q_op)
+
+        self.iterate_equals(quam.diffusion.full(), triv_op)
+
     def test_memory_projection_construction(self):
-        pass
+        mems = ["111", "100", "001"]
+        N = 2**len(mems[0])
+
+        mem_op_key = np.eye(N) - 2*np.diag([0, 1, 0, 0, 1, 0, 0, 1])
+        quam = QuAM()
+        quam.set_mem(mems)
+        mem1 = quam.mem_op.full()
+        quam.set_mem(mems, "inclusion")
+        mem2 = quam.mem_op.full()
+        def no_mem(pattern, state):
+            return qu.Qobj()
+        quam.set_mem(mems, no_mem)
+        mem3 = quam.mem_op.full()
+
+        self.iterate_equals(mem_op_key, mem1)
+        self.iterate_equals(mem_op_key, mem2)
+        self.iterate_equals(mem_op_key, mem3)
+
     def test_iteration_number_calcs(self):
-        pass
+        # test closest in func
+        func = lambda x: x/4
+        key = 1
+        integer = find_closest_int(func)
+        self.assertEqual(key, integer)
+
+        func = lambda x: x/4 + 0.25
+        key = 1
+        integer = find_closest_int(func)
+        self.assertEqual(key, integer)
+
+        func = lambda x: x*(1/8 + 0.01) + 0.25
+        key = 7
+        integer = find_closest_int(func, limit=200)
+        self.assertEqual(key, integer)
+
     def test_normal_search(self):
-        pass
+        N = 2**3
+        mem = ["010", "100"]
+        query = ["011"]
+
+        quam = QuAM()
+        quam.set_mem(mem)
+        quam.set_query(query)
+
+        quam.set_oracle()
+        quam.set_diffusion()
+
+        states, hist = quam.match_ezhov(iteration="exact")
+        key_state = np.array([-0.257, 0.031, 0.683, 0.531, 0.228, -0.257, -0.257, 0.031])
+
+        test_state = np.reshape(np.around(hist[4].full(), decimals=3), (N))
+
+        # probs = np.zeros(len(hist))
+        # for i in range(len(hist)):
+        #     prob_vals = np.square(np.abs(hist[i].full()))
+        #     probs[i] = sum([prob_vals[2], prob_vals[4]])
+        # plt.plot(probs)
+        # plt.show()
+
+        self.iterate_equals(test_state, key_state)
+
     def test_improved_search(self):
-        pass
+        N = 2**3
+        mem = ["010", "100"]
+        query = ["011"]
+
+        quam = QuAM()
+        quam.set_mem(mem)
+        quam.set_query(query)
+
+        quam.set_oracle()
+        quam.set_diffusion()
+
+        states, hist = quam.match_C1(iteration="exact")
+        key_state = np.array([-0.137, 0.023, -0.876, 0.301, -0.292, -0.137, -0.137, 0.023])
+
+        test_state = np.reshape(np.around(hist[25].full(), decimals=3), (N))
+
+        # probs = np.zeros(len(hist))
+        # for i in range(len(hist)):
+        #     prob_vals = np.square(np.abs(hist[i].full()))
+        #     probs[i] = sum([prob_vals[2], prob_vals[4]])
+        # plt.plot(probs)
+        # plt.show()
+
+        self.iterate_equals(test_state, key_state)
 
 if __name__ == "__main__":
-    test.main()
+    test.main(verbosity=2)
