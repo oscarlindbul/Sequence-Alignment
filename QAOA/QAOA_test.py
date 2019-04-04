@@ -1,5 +1,6 @@
 import warnings
 warnings.filterwarnings("ignore")
+import time
 
 from qiskit import IBMQ
 from qiskit.tools.monitor import job_monitor
@@ -16,11 +17,11 @@ import MSA_column
 # load IBM credentials
 IBMQ.load_accounts()
 
-backend = "ibmq_qasm_simulator"
+backend = "statevector_simulator"
 shots = 1024
 method = input("Quantum method? ")
 
-sequences = ["CTA", "T"]
+sequences = ["CT", "T"]
 costs = [-10, 10, 10]
 
 matchings = MSA_column.get_match_matrix(sequences, costs)
@@ -39,11 +40,11 @@ exact_solver = ExactEigensolver(Hamilt)
 solution = exact_solver.run()
 # exact solution
 positions = MSA_column.sample_most_likely(solution["wavefunction"][0], rev_inds)
-alignment = MSA_column.get_alignment_string(sequences, inserts, positions)
+exact_alignment = MSA_column.get_alignment_string(sequences, inserts, positions)
 print("Exact solution: Energy=", solution["eigvals"][0] + shift)
-for s in alignment:
+for s in exact_alignment:
     print(s)
-
+print()
 # QAOA
 if method == "QAOA":
     # initial_state = np.zeros(2**Hamilt.num_qubits)
@@ -56,23 +57,54 @@ if method == "QAOA":
     # initial_state = CustomState(Hamilt.num_qubits, state_vector=initial_state)
 
     opt = COBYLA()
-    p = 10
-    solver = QAOA(Hamilt, opt, p)
-    simulator = IBMQ.get_backend(backend)
-    instance = QuantumInstance(backend=simulator, shots=shots)
-    result = solver.run(instance)
+    p = 1
+    angles = [0,0]
+    sol_found = False
+    data_file = "QAOA_run"
+    seq_array = np.array(sequences)
+    cost_array = np.array(costs)
+    coeff_arr = np.array([1, Hamiltonian_penalty])
+    insert_vals = np.array(inserts)
 
-    state = result["eigvecs"][0]
-    energy = result["eigvals"][0] + shift
+    times = []
+    energies = []
+    angle_arr = []
+    states = []
+    while not sol_found:
+        print("Starting iteration p =", p)
+        solver = QAOA(Hamilt, opt, p, initial_point=angles)
+        simulator = Aer.get_backend(backend)#IBMQ.get_backend(backend)
+        instance = QuantumInstance(backend=simulator, shots=shots)
+        start = time.time()
+        result = solver.run(instance)
+        run_time = time.time() - start
 
-    positions = MSA_column.sample_most_likely(state, rev_inds)
-    for (key, value) in positions.items():
-        print(key, value)
+        state = result["eigvecs"][0]
+        energy = result["eigvals"][0] + shift
+        angles = list(result["opt_params"])
+        states.append(state)
+        energies.append(energy)
+        angle_arr.append(angles)
+        times.append(run_time)
 
-    alignment = MSA_column.get_alignment_string(sequences, inserts, positions)
-    print("QAOA solution: Energy=", energy)
+        positions = MSA_column.sample_most_likely(state, rev_inds)
+        for (key, value) in positions.items():
+            print(key, value)
+
+        alignment = MSA_column.get_alignment_string(sequences, inserts, positions)
+        print("QAOA solution: Energy=", energy, "params=", angles, "runtime = ", run_time, "seconds")
+        sol_found = True
+        for (s1,s2) in zip(alignment, exact_alignment):
+            if not s1 == s2:
+                sol_found = False
+                break
+        if not sol_found:
+            angles.extend([0, 0])
+            p += 1
+        np.savez(data_file, seqs=seq_array, costs=cost_array, coeffs=coeff_arr, inserts=insert_vals, times=np.array(times), states=np.array(states), angles=np.array(angle_arr), energies=np.array(energies))
     for s in alignment:
         print(s)
+
 
 # VQE
 if method == "VQE":

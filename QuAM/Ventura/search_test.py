@@ -5,6 +5,11 @@ pattern = np.array(["011"])
 n = len(pattern[0])
 sol=[2,4]
 
+# memory = np.array(["011", "100"])
+# pattern = np.array(["011"])
+# n = len(pattern[0])
+# sol=[3,4]
+
 searcher = QuAM()
 searcher.set_mem(memory)
 print("mem state", searcher.memory, "prob", searcher.memory.norm())
@@ -24,7 +29,8 @@ success_prob_exact = sum([abs(result_ezhov_exact.full()[i])**2 for i in sol])
 print("result_ezhov_exact:", success_prob_exact)
 success_probs_ezhov = np.zeros(len(hist1_exact))
 for i in range(len(hist1_exact)):
-    success_probs_ezhov[i] = sum([abs(hist1_exact[i].full()[j])**2 for j in sol])
+    success_probs_ezhov[i] = np.abs(searcher.query.overlap(hist1_exact[i]))
+    #success_probs_ezhov[i] = sum([abs(hist1_exact[i].full()[j])**2 for j in sol])
 plt.plot(success_probs_ezhov)
 plt.show()
 
@@ -33,7 +39,8 @@ print("C1:", result_C1)
 print("iterations: ", len(hist2))
 success_probs_C1 = np.zeros(len(hist2))
 for i in range(len(hist2)):
-    success_probs_C1[i] = sum([abs(hist2[i].full()[j])**2 for j in sol])
+    success_probs_C1[i] = np.abs(searcher.query.overlap(hist2[i]))
+    #success_probs_C1[i] = sum([abs(hist2[i].full()[j])**2 for j in sol])
 plt.plot(success_probs_C1)
 plt.show()
 
