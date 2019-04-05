@@ -21,7 +21,7 @@ backend = "statevector_simulator"
 shots = 1024
 method = input("Quantum method? ")
 
-sequences = ["CT", "T"]
+sequences = ["CTA", "T"]
 costs = [-10, 10, 10]
 
 matchings = MSA_column.get_match_matrix(sequences, costs)
@@ -60,7 +60,7 @@ if method == "QAOA":
     p = 1
     angles = [0,0]
     sol_found = False
-    data_file = "QAOA_run"
+    data_file = "QAOA_run2"
     seq_array = np.array(sequences)
     cost_array = np.array(costs)
     coeff_arr = np.array([1, Hamiltonian_penalty])
