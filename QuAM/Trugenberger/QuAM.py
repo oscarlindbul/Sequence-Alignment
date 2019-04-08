@@ -54,11 +54,7 @@ class QuAM:
         hamming_circuit = self.hamming_measure()
 
         # create inverse of comparison circuit (inversion of circuit apparently not supported)
-        inverse_comparison = QuantumCircuit(self.load_bits, self.mem_bits, self.control_reg)
-        for i in range(self.bit_num):
-            inverse_comparison.x(self.mem_bits[i])
-            inverse_comparison.cx(self.load_bits[i], self.mem_bits[i])
-        inverse_comparison.h(self.control_reg[0])
+        inverse_comparison = comparison_circuit.inverse()
 
         self.retrieval_circuit = comparison_circuit + hamming_circuit + inverse_comparison
 

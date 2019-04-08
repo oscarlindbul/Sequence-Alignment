@@ -151,6 +151,7 @@ class QuAM:
         M = find_closest_int(lambda x : T*(1/4 + x))
         return M
 
+
     def match_ezhov(self, iteration="approx"):
         if isinstance(iteration, str):
             M = self.get_iter_num(iteration)
