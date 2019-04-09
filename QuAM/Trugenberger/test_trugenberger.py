@@ -2,7 +2,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import numpy as np
-from QuAM import QuAM
+from Trugenberg_QuAM import QuAM
 from qiskit import QuantumCircuit, BasicAer, execute
 import qutip as qu
 import unittest

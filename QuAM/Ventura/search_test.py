@@ -1,4 +1,4 @@
-from QuAM import *
+from Ventura_QuAM import *
 
 memory = np.array(["010", "100"])
 pattern = np.array(["011"])

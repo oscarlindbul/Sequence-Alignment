@@ -1,7 +1,7 @@
 import unittest as test
 import numpy as np
 import qutip as qu
-from QuAM import *
+from Ventura_QuAM import *
 
 
 class Test_QuAM(test.TestCase):
