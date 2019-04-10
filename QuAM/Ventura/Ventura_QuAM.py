@@ -73,6 +73,7 @@ class QuAM:
         self.memory = None
         self.memories = None
         self.state = None
+        self.max_iterations = 1000
 
     def set_query(self, patterns, weights=None, scheme=None, bin_param=0.25):
         """Sets the pattern of the search
@@ -145,10 +146,12 @@ class QuAM:
         else:
             B = quer.overlap(mem)
         B = np.abs(B)
+        print("B", B)
         w = 2*np.arcsin(B)
+        print("w", w)
         T = 2*np.pi/w
-        print("T, w, B:", T, w, B)
-        M = find_closest_int(lambda x : T*(1/4 + x))
+        print("T", T)
+        M = find_closest_int(lambda x : T*(1/4 + x), limit=self.max_iterations)
         return M
 
 
@@ -232,3 +235,6 @@ class QuAM:
 
     def set_state(self, state):
         self.state = state
+
+    def set_max_iterations(self, iters):
+        self.max_iterations = iters
