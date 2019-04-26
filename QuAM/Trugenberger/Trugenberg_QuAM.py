@@ -3,6 +3,7 @@ warnings.filterwarnings("ignore")
 
 import numpy as np
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, execute
+from qiskit import BasicAer
 
 def bit_str_to_int(bit_str):
     bit_arr = np.array([c == "1" for c in bit_str])
@@ -13,9 +14,9 @@ class QuAM:
 
     def __init__(self, pattern_length, control_length=1):
         self.bit_num = pattern_length
-        self.load_bits = QuantumRegister(pattern_length, "load")
+        self.control_reg = QuantumRegister(control_length, "control")
         self.mem_bits = QuantumRegister(pattern_length, "mem")
-        self.control_reg = QuantumRegister(1, "control")
+        self.load_bits = QuantumRegister(pattern_length, "load")
         self.load_mem_circuit = None
         self.load_query_circuit = None
         self.retrieval_circuit = None
@@ -43,20 +44,29 @@ class QuAM:
         self.load_query_circuit = QuantumCircuit(self.load_bits)
         self.load_query_circuit.initialize(amps, self.load_bits)
 
-    def make_retrieval_circuit(self):
+    def make_retrieval_circuit(self, controls=1):
         # create retrieval algorithm
-        comparison_circuit = QuantumCircuit(self.load_bits, self.mem_bits, self.control_reg)
-        comparison_circuit.h(self.control_reg[0])
-        for i in range(self.bit_num):
-            comparison_circuit.cx(self.load_bits[i], self.mem_bits[i])
-            comparison_circuit.x(self.mem_bits[i])
+        for c in range(controls):
+            comparison_circuit = QuantumCircuit(self.load_bits, self.mem_bits, self.control_reg)
+            comparison_circuit.h(self.control_reg[c])
+            for i in range(self.bit_num):
+                comparison_circuit.cx(self.load_bits[i], self.mem_bits[i])
+                comparison_circuit.x(self.mem_bits[i])
 
-        hamming_circuit = self.hamming_measure()
+            hamming_circuit = self.hamming_measure(self.control_reg[c])
 
-        # create inverse of comparison circuit (inversion of circuit apparently not supported)
-        inverse_comparison = comparison_circuit.inverse()
+            # create inverse of comparison circuit (inversion of circuit apparently not supported)
+            inverse_comparison = QuantumCircuit(self.load_bits, self.mem_bits, self.control_reg)
+            for i in reversed(range(self.bit_num)):
+                inverse_comparison.x(self.mem_bits[i])
+                inverse_comparison.cx(self.load_bits[i], self.mem_bits[i])
+            inverse_comparison.h(self.control_reg[c])
+            inverse_comparison.u1(-np.pi/2, self.control_reg[c])
 
-        self.retrieval_circuit = comparison_circuit + hamming_circuit + inverse_comparison
+            if c == 0:
+                self.retrieval_circuit = comparison_circuit + hamming_circuit + inverse_comparison
+            else:
+                self.retrieval_circuit = self.retrieval_circuit + comparison_circuit + hamming_circuit + inverse_comparison
 
 
     def hamming_measure(self, control_bit):
@@ -78,3 +88,16 @@ class QuAM:
         # combine operations
         hamm_unitary = unitary + c_unitary
         return hamm_unitary
+
+    def simulate_match_state(self):
+        """Performs the matching between current query, memory and control register.
+        """
+        match_circuit = QuantumCircuit(self.control_reg, self.mem_bits, self.load_bits)
+        match_circuit = self.load_query_circuit + self.load_mem_circuit + self.retrieval_circuit
+
+        # print(match_circuit)
+
+        backend = BasicAer.get_backend("statevector_simulator")
+        vector = execute(match_circuit, backend).result().get_statevector()
+
+        return vector
