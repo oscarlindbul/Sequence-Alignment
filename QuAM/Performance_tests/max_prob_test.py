@@ -36,7 +36,7 @@ def int_to_bitstr(integer, bits=None):
         return format(integer, "0" + str(bits) + "b")
 
 def Test1(data_file=None):
-    max_bits = 13 # maximum number of qubits
+    max_bits = 14 # maximum number of qubits
     n_bits = np.arange(3, max_bits+1)
     n_nums = len(n_bits)
     number_of_marks = 20 # number of random marks to test for
@@ -105,7 +105,7 @@ def Test1(data_file=None):
 
     np.savez(data_file, bits=n_bits, ratios=ratio_range, peak_factor=np.array([peak_factor]), values=ventura_probs)
 
-def Test1(data_file=None):
+def Test2(data_file=None):
     max_bits = 7 # maximum number of qubits
     n_bits = np.arange(3, max_bits+1)
     n_nums = len(n_bits)
@@ -201,6 +201,6 @@ def plot_test1_data(data_file):
     plt.title("Probability of finding one marked (existing) item")
     plt.show()
 
-Test2("test2_data")
+Test1("test1_data")
 
 plot_test1_data("test1_data.npz")
