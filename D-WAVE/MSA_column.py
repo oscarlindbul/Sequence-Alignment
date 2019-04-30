@@ -50,7 +50,7 @@ def get_MSA_qubitmat(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
         """
         sum_0_to_n = lambda x: x*(x**2-1)/3
         max_penalty = (np.max(sizes) + extra_inserts)*sum_0_to_n(len(sizes))*match_max
-        coeffs = [1, max_penalty + 1]
+        coeffs = [1, 0.5*max_penalty+1]
 
     A = coeffs[0]    # cost function coefficient
     B = coeffs[1]    # placement coefficient
@@ -108,8 +108,7 @@ def get_MSA_qubitmat(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
                         w = weights[s1,n1,s2,n2]
                         add_pauli_bool(A*w, (s1,n1,i), (s2,n2,i))
 
-    print("after matchings")
-    print(spin_mat)
+
     """Penalties version 1 (penalty for number of gaps/deletions)
     Deletion for element
     H_del = A*sum_{s,n} x_{s,n,0}
@@ -145,8 +144,7 @@ def get_MSA_qubitmat(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
                         add_pauli_bool(w, (s1, n1, i))
                         for n2 in range(sizes[s2]):
                             add_pauli_bool(-w, (s1, n1, i), (s2, n2, i))
-    print("After gap pentaly")
-    print(spin_mat)
+
 
     """Placement terms
     Place at only one position
@@ -165,11 +163,8 @@ def get_MSA_qubitmat(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
                         add_pauli_bool(w, (s,n,i), (s,n,j))
                     else:
                         w = -B
-                        print((s,n,i), pos2ind(s, n, i), w)
                         add_pauli_bool(w,(s,n,i))
 
-    print("After placement constrictment")
-    print(spin_mat)
 
     """Order terms
     no deletions
@@ -191,7 +186,6 @@ def get_MSA_qubitmat(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
                     for j in range(i+1):
                         w = C
                         add_pauli_bool(w, (s,n,i), (s,n+1,j))
-                        print((s,n,i), (s,n+1,j))
     # exceptions = [(0,0,0), (0, 0, 1)]
     # add_pauli_bool(-50000, *exceptions)
     # for s in range(L):
@@ -200,7 +194,7 @@ def get_MSA_qubitmat(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
     #             # if not (s,n,i) in exceptions:
     #             add_pauli_bool(1000, (s,n,i))
     #             print("not", (s,n,i))
-    print("Number of paulis:", len(pauli_list))
+
     return spin_mat, shift, rev_ind_scheme
 
 def sample_most_likely(state_vector, rev_inds):
