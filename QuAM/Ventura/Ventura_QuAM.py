@@ -10,12 +10,25 @@ def bit_arr_to_int(pattern):
 def str_to_bit_arr(bit_str):
     return np.array([x == "1" for x in bit_str])
 
-def find_closest_int(func, limit=100):
-    nums = np.arange(1, limit)
+def find_closest_int(func, iter_limit=100, scheme="ezhov"):
+    start,point = func(0),func(1)
+    increase = point - start
+    limit = int(np.floor((iter_limit - start)/increase))
+    while func(limit) < 2:
+        limit += 1
+    nums = np.arange(0, limit+1)
+    print("iter_limit", iter_limit)
+    print("limit=", limit)
+    print("nums = ", nums)
     vals = func(nums)
+    print("vals = ", vals)
     vals = np.abs(np.mod(vals, 1) - 0.5)
     alph = np.argmax(vals)
-    return int(np.round(func(nums[alph])))
+    M = int(np.round(func(nums[alph])))
+    if scheme != "ezhov" and M < 2:
+        M = 2
+    print("M=",M)
+    return M
 
 def find_closest_peak(func, limit=10):
     vals = func(np.arange(limit))
@@ -136,7 +149,7 @@ class QuAM:
             self.memory = state
         self.memories = memories
 
-    def get_iter_num(self, scheme="approx", mem=None, quer=None):
+    def get_iter_num(self, match_type, scheme="approx", mem=None, quer=None):
         if mem is None:
             mem = self.memory
         if quer is None:
@@ -146,18 +159,19 @@ class QuAM:
         else:
             B = quer.overlap(mem)
         B = np.abs(B)
-        print("B", B)
+        # print("B", B)
         w = 2*np.arcsin(B)
-        print("w", w)
+        # print("w", w)
         T = 2*np.pi/w
-        print("T", T)
-        M = find_closest_int(lambda x : T*(1/4 + x), limit=self.max_iterations)
+        # print("T", T)
+        iter_limit = len(self.memories)
+        M = find_closest_int(lambda x : T*(1/4 + x), iter_limit=iter_limit, scheme=match_type)
         return M
 
 
     def match_ezhov(self, iteration="approx"):
         if isinstance(iteration, str):
-            M = self.get_iter_num(iteration)
+            M = self.get_iter_num("ezhov", iteration)
         elif isinstance(iteration, int):
             M = iteration
         else:
@@ -176,7 +190,7 @@ class QuAM:
         if type(iteration) is int:
             M = iteration
         else:
-            M = self.get_iter_num(iteration)
+            M = self.get_iter_num("C1", iteration)
 
         state_hist = np.zeros(M+1, dtype=qu.Qobj)
         state = self.memory.copy()

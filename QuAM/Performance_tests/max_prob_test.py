@@ -20,6 +20,8 @@ from mpl_toolkits.mplot3d import Axes3D
     5. Several distributed targets (center all hits), database filling ratio, fixed database size
     6. distributed target without center, Hamming distance from center to match, database size
 
+    8-10: vicinity tests checking different ratios of matches at specific hamming distances from target.
+
     Output:
     1. Probs for hit
     2. Probs for hit

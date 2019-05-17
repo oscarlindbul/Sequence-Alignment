@@ -4,6 +4,7 @@ class SeqQuery:
         self.params = None
         self.spin_mat = None
         self.spin_shift = 0
+        self.costs = None
         self.rev_inds = None
         self.h = None
         self.J = None

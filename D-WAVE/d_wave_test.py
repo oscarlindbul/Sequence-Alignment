@@ -10,12 +10,12 @@ import pickle
 from dwave.system.samplers import DWaveSampler
 from dwave.system.composites import EmbeddingComposite
 
-samples = 5000
-save_file = "d_wave_qpu_result4_3.dat"
+samples = 10000
+save_file = "d_wave_temp_data.dat"
 # sequences = ["CT", "T"]
-sequences = ["AGT", "T", "G"]
-simulation = False
-match_cost = 0
+sequences = ["ATGC", "T", "AC", "GC"]
+simulation = True
+match_cost = -1
 mismatch_cost = 1
 
 # quantum spin column version
@@ -32,7 +32,7 @@ for s1 in range(len(sequences)):
                     matchings[s1,n1,s2,n2] = mismatch_cost
 
 inserts = 0
-gap_penalty = 1
+gap_penalty = 0
 params = {"gap_pen": gap_penalty, "extra_inserts": inserts}
 mat, shift, rev_inds = MSA_column.get_MSA_qubitmat(sizes, matchings, gap_pen=gap_penalty, extra_inserts=inserts)
 
@@ -71,6 +71,7 @@ print(result_dic)
 data_query = SeqQuery()
 data_query.sequences = sequences
 data_query.params = params
+data_query.costs = [match_cost, mismatch_cost, gap_penalty]
 data_query.spin_mat = mat
 data_query.spin_shift = shift
 data_query.rev_inds = rev_inds

@@ -50,7 +50,19 @@ def get_MSA_qubitmat(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
         """
         sum_0_to_n = lambda x: x*(x**2-1)/3
         max_penalty = (np.max(sizes) + extra_inserts)*sum_0_to_n(len(sizes))*match_max
-        coeffs = [1, 0.5*max_penalty+1]
+        coeffs = [1, max_penalty]
+        print("max_penalty 1=", max_penalty)
+
+        """
+        More tight penalty, given by math this time
+        P = min(-N*max(2g - w) - L, L + N*min(w - 2g))
+        """
+        shifted_weights = 2*gap_pen - weights
+        max_val = np.amax(shifted_weights, axis=(0,1,2,3))
+        min_val = np.amin(-shifted_weights, axis=(0,1,2,3))
+        max_penalty = np.abs(min([-n_tot*max_val - gap_pen*L, gap_pen*L + n_tot*min_val]))
+        print("max_penalty 2=", max_penalty)
+        coeffs = [1, max_penalty]
 
     A = coeffs[0]    # cost function coefficient
     B = coeffs[1]    # placement coefficient
@@ -137,7 +149,7 @@ def get_MSA_qubitmat(sizes, weights, gap_pen=0, extra_inserts=0, allow_delete=Fa
     if gap_pen != 0:
         for s1 in range(L):
             for n1 in range(sizes[s1]):
-                for s2 in range(s1+1, L):
+                for s2 in range(L):
                     for i in range(num_pos):
                         w = A*gap_pen
 

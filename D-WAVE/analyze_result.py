@@ -7,7 +7,7 @@ import neal
 from timeit import default_timer as timer
 import pickle
 
-load_file = "d_wave_result4.dat"
+load_file = "d_wave_temp_data.dat"
 gap_char = "n"
 
 file = open(load_file, "rb")
@@ -17,6 +17,12 @@ seqs = data.sequences
 sizes = [len(s) for s in seqs]
 inserts = data.params["extra_inserts"]
 ind_map = data.rev_inds
+h = np.array(list(data.h.values()))
+J = np.array(list(data.J.values()))
+
+print("h span =", "[{},{}]".format(np.min(np.abs(h[h != 0])), np.max(np.abs(h[h != 0]))))
+print("J span =", "[{},{}]".format(np.min(np.abs(J[J != 0])), np.max(np.abs(J[J != 0]))))
+
 
 
 result_dic = {}
@@ -66,15 +72,15 @@ for samples, energy, occurrences in data.response.data(["sample", "energy", "num
 #         result_dic[energy] = occur
 #     else:
 #         result_dic[energy] += occur
-bar_inds = np.arange(len(result_dic.keys()))
-bar_labels = list(result_dic.keys())
-bar_values = np.zeros(len(bar_labels))
-bar_energies = np.zeros(len(bar_labels))
-for i in range(len(bar_labels)):
+val_length = min([20, len(result_dic.keys())])
+bar_inds = np.arange(val_length)
+bar_labels = (list(result_dic.keys()))[:val_length]
+bar_values = np.zeros(val_length)
+bar_energies = np.zeros(val_length)
+for i in range(val_length):
     vals = result_dic[bar_labels[i]]
     bar_values[i] = vals["occurrences"]
     bar_energies[i] = vals["energy"]
-
 
 def align_yaxis(ax1, v1, ax2, v2):
     """adjust ax2 ylimit so that v2 in ax2 is aligned to v1 in ax1"""
@@ -102,7 +108,10 @@ ax2.set_ylabel("Energy/Cost", color=energy_color)
 ax2.tick_params(axis="y", labelcolor=energy_color)
 
 y_lim = ax1.get_ylim()
-scale = min(bar_energies)/max(bar_energies)
+if max(bar_energies) != 0:
+    scale = min(bar_energies)/max(bar_energies)
+else:
+    scale = min(bar_energies)
 y_min = scale*max(bar_values)
 if y_min < 0:
     ax1.set_ylim([y_min, ax1.get_ylim()[1]])
